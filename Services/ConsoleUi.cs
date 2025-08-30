@@ -14,9 +14,9 @@ public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
         var options = new[]
         {
             "List books",
+            "List authors",
             "Add book",
             "Remove book",
-            "List authors",
             "Exit"
         };
 
@@ -31,13 +31,13 @@ public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
                     await ListBooksInteractiveAsync();
                     break;
                 case 1:
-                    await AddBookAsync();
+                    await ListAuthorsInteractiveAsync();
                     break;
                 case 2:
-                    await RemoveBookInteractiveAsync();
+                    await AddBookAsync();
                     break;
                 case 3:
-                    await ListAuthorsInteractiveAsync();
+                    await RemoveBookInteractiveAsync();
                     break;
             }
         }
@@ -103,28 +103,38 @@ public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
             Console.WriteLine("No authors found.");
             return;
         }
-        var idx = await SelectFromListAsync(list, a => a.Name, "Authors (Enter=list books, Esc=back)");
-        if (idx < 0) return;
-        var author = list[idx];
-        var abooks = await books.GetByAuthorIdAsync(author.Id);
-        Console.Clear();
-        Console.WriteLine($"Books by {author.Name}:");
-        Console.WriteLine();
-        if (abooks.Count == 0)
+        var aidx = await SelectFromListAsync(list, a => a.Name, "Authors (Enter=list books, Esc=back)");
+        if (aidx < 0) return;
+        var author = list[aidx];
+
+        while (true)
         {
-            Console.WriteLine("No books for this author.");
-        }
-        else
-        {
-            foreach (var b in abooks)
+            var abooks = await books.GetByAuthorIdAsync(author.Id);
+            if (abooks.Count == 0)
             {
-                Console.WriteLine($"- {b.Title}");
-                Console.WriteLine($"  {Truncate(b.Description, 120)}");
+                Console.Clear();
+                Console.WriteLine($"Books by {author.Name}:");
+                Console.WriteLine();
+                Console.WriteLine("No books for this author.");
+                Console.WriteLine();
+                Console.WriteLine("Press any key to return...");
+                Console.ReadKey(true);
+                return;
             }
+
+            var bidx = await SelectFromListAsync(abooks, b => b.Title, $"Books by {author.Name} (Enter=details, Esc=back)");
+            if (bidx < 0) return; // back to main
+
+            var bsel = abooks[bidx];
+            Console.Clear();
+            Console.WriteLine($"Title: {bsel.Title}");
+            Console.WriteLine($"Author: {author.Name}");
+            Console.WriteLine("Description:");
+            Console.WriteLine(bsel.Description);
+            Console.WriteLine();
+            Console.WriteLine("Press any key to return...");
+            Console.ReadKey(true);
         }
-        Console.WriteLine();
-        Console.WriteLine("Press any key to return...");
-        Console.ReadKey(true);
     }
 
     private static Task<int> SelectFromListAsync<T>(IList<T> items, Func<T, string> render, string header)
@@ -184,4 +194,3 @@ public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
         return value.Length <= max ? value : value[..(max - 3)] + "...";
     }
 }
-

@@ -14,11 +14,6 @@ public class BookRepository(SqlDbContext db) : IBookRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<Book?> GetByIdWithAuthorAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await db.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
-    }
-
     public async Task<Book> CreateAsync(string title, string description, string authorName, CancellationToken cancellationToken = default)
     {
         var author = await db.Authors.FirstOrDefaultAsync(a => a.Name == authorName, cancellationToken)
@@ -41,25 +36,6 @@ public class BookRepository(SqlDbContext db) : IBookRepository
         db.Books.Add(book);
         await db.SaveChangesAsync(cancellationToken);
         return book;
-    }
-
-    public async Task UpdateAsync(Guid id, string title, string description, string authorName, CancellationToken cancellationToken = default)
-    {
-        var book = await db.Books.Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id, cancellationToken)
-                   ?? throw new InvalidOperationException("Book not found");
-
-        var author = await db.Authors.FirstOrDefaultAsync(a => a.Name == authorName, cancellationToken)
-                     ?? new Author { Id = Guid.NewGuid(), Name = authorName };
-        if (db.Entry(author).State == EntityState.Detached && !(await db.Authors.AnyAsync(a => a.Id == author.Id, cancellationToken)))
-        {
-            db.Authors.Add(author);
-        }
-
-        book.Title = title;
-        book.Description = description;
-        book.AuthorId = author.Id;
-        book.Author = author;
-        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
