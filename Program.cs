@@ -21,11 +21,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SqlDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// App service
+// App services
 builder.Services.AddScoped<AppRunner>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 builder.Services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
+builder.Services.AddScoped<ConsoleUi>();
 
 var host = builder.Build();
 
@@ -37,22 +38,12 @@ await db.Database.MigrateAsync();
 var runner = scope.ServiceProvider.GetRequiredService<AppRunner>();
 await runner.RunAsync();
 
-public class AppRunner(IBookRepository books, IDatabaseSeeder seeder)
+public class AppRunner(ConsoleUi ui, IDatabaseSeeder seeder)
 {
     public async Task RunAsync()
     {
         await seeder.SeedIfEmptyAsync();
 
-        var list = await books.GetAllWithAuthorsAsync();
-
-        foreach (var b in list)
-        {
-            Console.WriteLine($"{b.Title} - {b.Author.Name}");
-        }
-
-        if (list.Count == 0)
-        {
-            Console.WriteLine("No books found. Apply migrations and seed data as needed.");
-        }
+        await ui.RunAsync();
     }
 }

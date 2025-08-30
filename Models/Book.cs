@@ -10,6 +10,10 @@ public class Book
     [MaxLength(300)]
     public required string Title { get; set; }
 
+    [Required]
+    [MaxLength(2000)]
+    public required string Description { get; set; }
+
     // Foreign key
     public Guid AuthorId { get; set; }
 
