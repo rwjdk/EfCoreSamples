@@ -1,7 +1,7 @@
 using EfCoreSamples.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EfCoreSamples.Data;
+namespace EfCoreSamples;
 
 public class SqlDbContext(DbContextOptions<SqlDbContext> options) : DbContext(options)
 {

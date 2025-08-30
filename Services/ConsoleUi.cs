@@ -2,7 +2,7 @@ using EfCoreSamples.Repositories;
 
 namespace EfCoreSamples.Services;
 
-public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
+public class ConsoleUi(BookRepository books, AuthorRepository authors)
 {
     public async Task RunAsync()
     {
@@ -45,12 +45,14 @@ public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
 
     private async Task AddBookAsync()
     {
-        Console.Write("Title: ");
-        var title = ReadNonEmpty();
-        Console.Write("Author name: ");
-        var author = ReadNonEmpty();
-        Console.Write("Description: ");
-        var description = ReadNonEmpty();
+        var title = ReadWithEsc("Title: ", required: true);
+        if (title is null) { Console.WriteLine("Creation cancelled."); return; }
+
+        var author = ReadWithEsc("Author name: ", required: true);
+        if (author is null) { Console.WriteLine("Creation cancelled."); return; }
+
+        var description = ReadWithEsc("Description: ", required: true);
+        if (description is null) { Console.WriteLine("Creation cancelled."); return; }
 
         var created = await books.CreateAsync(title, description, author);
         Console.WriteLine($"Added: {created.Title} - {created.Author.Name}");
@@ -178,13 +180,49 @@ public class ConsoleUi(IBookRepository books, IAuthorRepository authors)
         }
     }
 
-    private static string ReadNonEmpty()
+    private static string? ReadWithEsc(string prompt, bool required)
     {
         while (true)
         {
-            var s = Console.ReadLine();
-            if (!string.IsNullOrWhiteSpace(s)) return s.Trim();
-            Console.Write("Please enter a value: ");
+            Console.Write(prompt);
+            var s = ReadLineOrEsc();
+            if (s is null) return null;
+            s = s.Trim();
+            if (!required || s.Length > 0) return s;
+            Console.WriteLine("Please enter a value or press Esc to cancel.");
+        }
+    }
+
+    private static string? ReadLineOrEsc()
+    {
+        var buffer = new System.Text.StringBuilder();
+        while (true)
+        {
+            var key = Console.ReadKey(intercept: true);
+            if (key.Key == ConsoleKey.Enter)
+            {
+                Console.WriteLine();
+                return buffer.ToString();
+            }
+            if (key.Key == ConsoleKey.Escape)
+            {
+                Console.WriteLine();
+                return null;
+            }
+            if (key.Key == ConsoleKey.Backspace)
+            {
+                if (buffer.Length > 0)
+                {
+                    buffer.Length--;
+                    Console.Write("\b \b");
+                }
+                continue;
+            }
+            if (!char.IsControl(key.KeyChar))
+            {
+                buffer.Append(key.KeyChar);
+                Console.Write(key.KeyChar);
+            }
         }
     }
 
